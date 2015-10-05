@@ -3,18 +3,36 @@
 
 In this project, I aim to create a language that combines rapid prototyping, easy interpretation and full language flexibility with optional strong typing and the ability to be compiled into high-performance bytecode.
 
+Initial use case would be as a domain-specific language, which I believe it is tailored for, but it would be simple to convert into JavaScript, PHP, Python or Lua, or indeed to be run using a dedicated web server module.
+
+My inspirations are Lua for the style and object functionality, JavaScript for some of the syntax, Python for some of the control flow, and C# for the object-oriented principles and encapsulation.
+
 ## Basics
 
-```
+```python
 var foo               # Declare a dynamically typed variable
 foo = 1               # Assign a value
 foo = foo + "5"       # The normal '+' operator requires numbers.
                       # The string "5" is automatically converted into one
-foo = foo + "five"    # If a value cannot be appropriately converted, an *exception* is thrown.
+foo = foo + "five"    # If a value cannot be appropriately converted, an exception is thrown
 print(foo)            # A few functions are in the global namespace, such as `print`
 
 # Every statement must be followed by either a new line or a semicolon:
 foo += 1; foo += 2
+
+# FizzBuzz example...
+for i : int in range(0, 100) do
+    var printNewline : bool
+    if i % 3 == 0 then
+        print("Fizz", false)
+        printNewLine = true
+    end
+    if i % 5 == 0 then
+        print("Buzz", false);
+        printNewLine = false;
+    end
+    if printNewLine then print("", true) end
+end
 ```
 
 ## Types
@@ -41,24 +59,18 @@ Poly follows a strict priority order for type conversions:
 
 If one operand has a lower priority than the other, it will be converted as necessary.
 
-```
+```python
 123 == 123.456;      # 123 is converted to 123.0
 "123" == 123.456;    # "123" is converted to 123.0
 "123" == 123;        # "123" is converted to 123
-"foo" == 123;        # "foo" cannot be converted; the comparison returns `false`
+"foo" != 123;        # "foo" cannot be converted
 ```
 
-This applies to all comparisons:
-* `==` Equality
-* `!=` Inequality
-* `>` Greater than
-* `<` Less than
-* `>=` Greater than or equal
-* `<=` Less than or equal
+This applies to all comparisons and primitive operations.
 
 When converting strings to numbers, Poly tends to be lenient, and will ignore whitespace before, as well as non-numeric characters after the number:
 
-```
+```python
 # This is a valid assignment
 var a : float = "     123.456abcdef";
 
@@ -66,18 +78,26 @@ var a : float = "     123.456abcdef";
 #var b : float = "abcd  123.456";
 ```
 
+`bool` and `null` values can only be compared with themselves, the exception being that `null == ""`.
+
 Poly has no strict equality operator, but it's very simple to emulate one:
 
-```
+```python
 if a is float and a == 123.456: ...
 
 # Or, in a more general case..
 if typeof(a) == typeof(b) and a == b: ...
 ```
 
-`bool` and `null` values can only be compared with themselves, the exception being that `null == ""`.
+However this generally isn't necessary, because the type conversions are very simple and well defined.
 
-All other comparisons will return `false`.
+```python
+# For example...
+"  123.456" != "123.456 ";
+123.456 != 123;
+false != null;
+# etc.
+```
 
 ## Variables
 
@@ -93,11 +113,213 @@ If a variable is hinted as being `int`, `float`, `string` or `bool`, the `notnul
 
 Combining `notnull` with a type that is _not_ one of the four above (i.e. nothing, `array` or `object`) results in a value that _must_ be assigned as it is declared.
 
+```python
+var foo;             # Untyped value
+var bar : float;     # Accepts floats - integers automatically cast
+                     # No initial value; defaults to '0'
+bar = "123.456";     # This is valid; string cast to float
+#bar = "abc";        # This is not; "abc" cannot be converted
+#var baz : notnull;  # This isn't valid; we must assign the variable as we declare it
 ```
-var foo;            # Untyped valua
-var bar : float;    # Accepts floats - integers automatically cast
-                    # No initial value; defaults to '0'
-bar = "123.456";    # This is valid; string cast to float
-#bar = "abc";       # This is not; "abc" cannot be converted
-#var baz : notnull; # This isn't valid; we must assign the variable as we declare it
+
+Type hints aren't just limited to primitives; they can be *interfaces* and *function signatures* as well.
+
+## Safe casting
+
+Sometimes it's useful to test if a value has the right type, especially if you want to be strict about type correctness. While you can use the more verbose try-catch pattern, Poly also provides the `as` keyword, which will return `null` if the cast cannot be performed for any reason.
+
+```python
+var foo = "this is not a number";
+var bar : float, null = foo as float;   # bar is now null; no exception is thrown
+```
+
+## Functions
+
+Poly supports two styles for function definitions:
+
+```python
+# Normal (full body) syntax
+foo(a, b, c = 5)      # c defaults to 5
+    var d = a*b;
+    return d + c;
+end
+
+# Expression syntax - returns the result of a single statement
+bar(a, b, c = 5) => a*b + c
+
+# Function arguments and return values can have type hints:
+foo(a : float, b : int, c : int = 5) : float => a*b + c
+```
+
+Functions always have a return value. If there is no `return` statement, the function returns `null`.
+
+Poly requires that all type-hinted arguments have a value, either as a default argument in the function declaration or when being called. Arguments with no type can be omitted, and are given a default value of `null`.
+
+Varadic functions are defined by naming the final parameter `args` and optionally giving it an array type.
+
+```python
+foo(a, b, args : int[])
+    var c : int;
+    for i in args do c += i end
+    return c*a;
+end
+
+var bar = foo(3, "str", 1, 2, 3, 4, 5)
+```
+
+The `args` value follows similar default value rules; if it has a type hint, it always has a value (even if that value is an empty array), otherwise it may be `null`.
+
+If an array is passed as a varadic parameter, it will be treated as a single value unless it is prepended with the `unpack` keyword.
+
+```python
+var myArgs = [1, 2, 3, 4, 5]
+
+foo(3, "str", unpack myArgs)
+```
+
+## Passing by reference
+
+Sometimes it's useful to pass values by reference, to allow the function to modify them as an output. This is accomplished by prepending the `ref` keyword to an argument.
+
+```python
+foo(ref a) a = 5 end
+
+var bar;
+foo(ref bar);   # Note that 'ref' is required when we call the function as well
+```
+
+## Operators
+
+The following operators can be defined by objects - see the relevant chapter for more information.
+
+* Binary:
+    * `+` - Addition
+    * `-` - Subtraction
+    * `*` - Multiplication
+    * `/` - Division
+    * `%` - Modulo/remainder
+    * `.` - Concatenation
+    * `&` - Bitwise AND, intersection
+    * `|` - Bitwise OR, union
+    * `^` - Bitwise XOR, exclusion
+    * `in` - Checks presence in collection
+* Unary:
+    * `-` - Unary minus
+    * `~` - Unary inversion, bitwise NOT
+* Comparison:
+    * `==` - Equality
+    * `>` - Greater
+    * `<` - Less
+* Derived comparison (cannot be object-defined):
+    * `!=` - Inequality (inverse of equality)
+    * `>=` - Greater or equal (inverse of less)
+    * `<=` - Less or equal (inverse of greater)
+
+Additionally, Poly has several boolean-specific logical operators, which cannot be overloaded:
+
+* `and`
+* `or`
+* `not`
+* `xor`
+
+## Conditionals
+
+Conditionals use 'verbal' syntax, like Python or Lua:
+
+```python
+if a and b then
+    ...
+else if c then
+    ...
+end
+
+# Conditionals can have a 'return' value, making 'ternary' operations simple:
+var foo = if a then 5 else 3
+```
+
+## Indefinite loops
+
+Both 'while' and 'do-while' loops are supported:
+
+```python
+while condition do
+    ...
+end
+
+do
+    ...
+while condition;
+```
+
+## For-loops and iterators
+
+Any object that implements the `enumerator` interface can be iterated over:
+
+```python
+interface enumerator = {
+    getIterator();
+    moveNext(ref iterator) : bool;
+    current(iterator);
+}
+```
+
+We can then iterate over these objects like so:
+
+```python
+var container = ...
+
+var it = container.getIterator()
+while container.moveNext(ref it) do
+    print(container.current(it))
+end
+```
+
+However, we can simplify this using the `for` loop:
+
+```python
+var container = ...
+
+for i in container do
+    print(i)
+end
+```
+
+## Objects
+
+```python
+var foo = {
+    var bar;       # Member variable
+    baz(a) => 5;   # Member function
+}
+```
+
+
+
+## Properties
+
+Properties are variables with a property accessor object assigned to them, which overrides the 'get' and 'set' operations to that variable.
+
+```python
+var a;
+var foo = {
+    get => a*2;
+    set(value) => a = value/2;
+}
+
+foo = 5;   # a is now 2.5
+
+# Changing a property accessor object can be done with the 'set' function:
+set(foo, ...)   # This will only work in the same scope the property was defined in
+```
+
+Get-only properties can be defined with a single expression:
+
+```python
+foo => 1.23456789
+
+var bar = foo;    # Since foo is declared with no parentheses, it doesn't need any to be called.
+
+# Internally, 'foo' is a property accessor object, so to change it one must assign a new one:
+foo = { get => 12.3456789 }
+# 'set' isn't required because there's no 'set' accessor, but it still must be done int the same scope
 ```
