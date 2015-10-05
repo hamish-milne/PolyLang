@@ -224,7 +224,7 @@ Additionally, Poly has several boolean-specific logical operators, which cannot 
 
 ## Conditionals
 
-Conditionals use 'verbal' syntax, like Python or Lua:
+Conditionals use 'verbal' syntax, like Lua:
 
 ```python
 if a and b then
@@ -253,10 +253,10 @@ while condition;
 
 ## For-loops and iterators
 
-Any object that implements the `enumerator` interface can be iterated over:
+Any object that implements the `iterable` interface can be iterated over:
 
 ```python
-interface enumerator = {
+interface iterable = {
     getIterator();
     moveNext(ref iterator) : bool;
     current(iterator);
@@ -293,7 +293,30 @@ var foo = {
 }
 ```
 
+Objects can be concatenated together, like so:
 
+```python
+var foo = {
+    var a, b, c;
+}
+
+var derived = foo {
+    var d, e, f;
+}
+```
+
+In these 'derived' objects, functions can be reassigned:
+
+```python
+var foo {
+    bar(a, b) => a + b
+}
+
+var derived = foo {
+    # The 'base' keyword accesses the previous definition of the value
+    bar(a, b) = base.bar(a, b)*b
+}
+```
 
 ## Properties
 
@@ -317,9 +340,6 @@ Get-only properties can be defined with a single expression:
 ```python
 foo => 1.23456789
 
-var bar = foo;    # Since foo is declared with no parentheses, it doesn't need any to be called.
-
-# Internally, 'foo' is a property accessor object, so to change it one must assign a new one:
 foo = { get => 12.3456789 }
-# 'set' isn't required because there's no 'set' accessor, but it still must be done int the same scope
+# 'set' isn't required because there's no 'set' accessor, but it still must be done in the same scope
 ```
