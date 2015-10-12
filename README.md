@@ -139,16 +139,23 @@ Poly supports two styles for function definitions:
 
 ```python
 # Normal (full body) syntax
-foo(a, b, c = 5)      # c defaults to 5
+func foo(a, b, c = 5)      # c defaults to 5
     var d = a*b;
     return d + c;
 end
 
 # Expression syntax - returns the result of a single statement
-bar(a, b, c = 5) => a*b + c
+func bar(a, b, c = 5) => a*b + c
 
 # Function arguments and return values can have type hints:
-foo(a : float, b : int, c : int = 5) : float => a*b + c
+func foo(a : float, b : int, c : int = 5) : float => a*b + c
+```
+
+Anonymous functions are simple; just omit the identifier
+
+```python
+var foo = func(a, b) => a + b
+var bar = func(a, b) return a + b; end
 ```
 
 Functions always have a return value. If there is no `return` statement, the function returns `null`.
@@ -158,7 +165,7 @@ Poly requires that all type-hinted arguments have a value, either as a default a
 Varadic functions are defined by naming the final parameter `args` and optionally giving it an array type.
 
 ```python
-foo(a, b, args : int[])
+func foo(a, b, args : int[])
     var c : int;
     for i in args do c += i end
     return c*a;
@@ -182,7 +189,7 @@ foo(3, "str", unpack myArgs)
 Sometimes it's useful to pass values by reference, to allow the function to modify them as an output. This is accomplished by prepending the `ref` keyword to an argument.
 
 ```python
-foo(ref a) a = 5 end
+func foo(ref a) a = 5 end
 
 var bar;
 foo(ref bar);   # Note that 'ref' is required when we call the function as well
@@ -290,6 +297,12 @@ end
 var foo = {
     var bar;       # Member variable
     baz(a) => 5;   # Member function
+    
+    bar = 5;       # Statements in the object body are executed immediately
+    print(bar);    # Parent members can be accessed without qualification
+    
+    # If a member is defined over a parent member, the latter can be accessed like so
+    print(parent.bar)
 }
 ```
 
@@ -320,19 +333,19 @@ var derived = foo {
 
 ## Properties
 
-Properties are variables with a property accessor object assigned to them, which overrides the 'get' and 'set' operations to that variable.
+Properties are variables with a property accessor object assigned to them, which overrides the 'get' and 'set' operations to that variable. They must be defined with the keyword `prop`.
 
 ```python
 var a;
-var foo = {
+prop foo = {
     get => a*2;
     set(value) => a = value/2;
 }
 
 foo = 5;   # a is now 2.5
 
-# Changing a property accessor object can be done with the 'set' function:
-set(foo, ...)   # This will only work in the same scope the property was defined in
+# Changing a property accessor object can be done with the 'setvar' function:
+setvar(ref foo, ...)   # This will only work in the same scope the property was defined in
 ```
 
 Get-only properties can be defined with a single expression:
@@ -341,5 +354,40 @@ Get-only properties can be defined with a single expression:
 foo => 1.23456789
 
 foo = { get => 12.3456789 }
-# 'set' isn't required because there's no 'set' accessor, but it still must be done in the same scope
+# 'setvar' isn't required because there's no 'set' accessor, but it still must be done in the same scope
+```
+
+## Access modifiers
+
+To permit proper encapsulation, Poly allows members to be defined with access modifiers, which prevent (or allow) access from a different scope.
+
+Three modifier keywords exist: `public` allows access from any scope, `private` disallows access from any scope but the one the member is defined in, and `protected` allows access to 'derived scopes' - ones which are appended to the object scope.
+
+Note that `private` does not prevent access to _child_ scopes or objects, only to the _parent_ and _siblings_.
+
+Members have two access points that can be restricted: `read` and `write`. If no access point is specified, the default is to apply the keyword to both equally.
+
+```python
+var myObj = {
+    private var foo;
+    write:private var bar;
+    read:public write:protected var baz;
+}
+
+var myDerived = myObj {
+    #foo = 5;    # Invalid; foo is private
+    print(bar);
+    #bar = 5;    # Invalid; bar is private
+    baz = 5;     # Valid; we're in a derived object
+}
+```
+
+By default, variables and properties are defined as `public`, and functions are defined as `read:public write:protected`. If only one access point is changed, the other remains at the default.
+
+## Modules
+
+```python
+import anotherModule
+
+anotherModule.myFunction()
 ```
