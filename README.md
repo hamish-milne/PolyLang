@@ -78,7 +78,7 @@ var a : float = "     123.456abcdef";
 #var b : float = "abcd  123.456";
 ```
 
-`bool` and `null` values can only be compared with themselves, the exception being that `null == ""`.
+`bool` and `null` values can only be compared with themselves, the exception being that `null == ""`. Additionally, `null` can be used as an operand in any arithmetic or bitwise operation, acting as a 'no-op'. So `1+null == 1`, `1/0 == 1`, and `1*null == 1`.
 
 Poly has no strict equality operator, but it's very simple to emulate one:
 
@@ -331,6 +331,49 @@ var derived = foo {
 }
 ```
 
+Note that the syntax being used here will modify the _existing_ instance of the object. To ensure that this doesn't happen, you should use the 'constructor pattern' like so:
+
+```python
+func class() => {
+    var a, b, c;
+}
+
+func derived() => class() {
+    var d, e, f;
+}
+
+# Every call to 'derived' will create a new 'class->derived' instance
+var myObj = derived();
+```
+
+## Interfaces
+
+An interface defines a set of public members which can be used together as a type. Unlike most strongly typed languages, interfaces in Poly are inferred - a given object is checked dynamically, as needed.
+
+To define an interface, simply assign an object that implements it:
+
+```python
+interface iterable = {
+    getIterator();
+    moveNext(ref iterator) : bool;
+    current(iterator);
+}
+```
+
+The object used in the interface definition is scanned for public functions and properties (variables are treated identically to a read-write property), which are then stored as a stub. The object reference won't be pinned as a result.
+
+Interfaces can be combined together using the `&` operator.
+
+```python
+interface foo = { func1(); }
+interface bar = { func2(); }
+interface baz = foo & bar;
+# 'baz' defines 'func1' *and* 'func2'
+
+# We can also join the interfaces in a variable declaration
+var myVar : foo & bar;
+```
+
 ## Properties
 
 Properties are variables with a property accessor object assigned to them, which overrides the 'get' and 'set' operations to that variable. They must be defined with the keyword `prop`.
@@ -412,3 +455,56 @@ import someModule as anotherModule
 anotherModule.myFunction()
 ```
 
+We can also import one or more members from the given module directly into our own scope.
+
+```python
+import foo.myFunc  # Imports only myFunc
+myFunc()
+
+import foo.*  # Imports all members of foo
+# This is usually quite dangerous, as we don't know that 'foo'
+# won't try to define a member that already exists in our scope.
+```
+
+One important thing to consider is that the _code_ in a given module is executed only once. The 'instance' of the module is kept in memory throughout the program's execution, with further general `import` calls doing nothing, and importing specific members will simply reference the existing instance. This makes importing cheap and predictable, but as a result means the 'state' (member variables) of an imported module will persist.
+
+Additionally, the module variable is considered 'sealed' to user code. Member variables within the module, however, may not be. Access modifiers will still apply.
+
+## Exceptions
+
+Poly supports the handling of any exception that isn't a parse error (because with the latter, the state of the parser is invalid, so it's impossible to determine where the catch block is).
+
+```python
+var foo : int;
+try
+    foo = "not a number";
+catch
+    print("Error!");
+end
+
+# We can catch specific exceptions
+try
+    foo = "not a number";
+catch(poly.invalidCast)
+    print("Error!");
+end
+
+# .. And get the exception object for more information
+try
+    foo = "not a number";
+catch(poly.invalidCast e)
+    print(e.message);
+end
+```
+
+One can create and throw custom exceptions too:
+
+```python
+func myException() => {
+    toString() => "An error occurred"
+}
+
+func foo(int a)
+    if a < 0 then throw myException(); end
+end
+```
