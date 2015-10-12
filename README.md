@@ -351,10 +351,7 @@ setvar(ref foo, ...)   # This will only work in the same scope the property was 
 Get-only properties can be defined with a single expression:
 
 ```python
-foo => 1.23456789
-
-foo = { get => 12.3456789 }
-# 'setvar' isn't required because there's no 'set' accessor, but it still must be done in the same scope
+prop foo => 1.23456789
 ```
 
 ## Access modifiers
@@ -384,10 +381,34 @@ var myDerived = myObj {
 
 By default, variables and properties are defined as `public`, and functions are defined as `read:public write:protected`. If only one access point is changed, the other remains at the default.
 
-## Modules
+## Sealing
+
+Variables can be 'sealed', preventing them from being written to in the future.
 
 ```python
-import anotherModule
+var foo = 5;
+seal foo;
+#foo = 6;   # Invalid; foo is sealed
 
+# Variables can be sealed as they are assigned:
+var bar;
+seal bar = 5;
+
+# Sealing can be overridden by using setvar
+setvar(ref bar, 6);
+```
+
+## Modules
+
+In Poly, every execution scope (file, interpreter instance etc.) is, itself, an object. This allows 'modules' to be 'imported' by simply executing code, and assigning the resultant object to a variable.
+
+```python
+import myModule
+
+# We can rename the imported object, if it's more convenient
+import someModule as anotherModule
+
+# By default, accessing imported members is done via the object:
 anotherModule.myFunction()
 ```
+
