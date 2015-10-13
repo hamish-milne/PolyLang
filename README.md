@@ -109,9 +109,9 @@ Type hints can be combined additively with `,`. A variable with multiple types c
 
 Of particular note are the `null` and `notnull` types; these will allow and prevent the `null` value, respectively.
 
-If a variable is hinted as being `int`, `float`, `string` or `bool`, the `notnull` hint is implicit and as such the default assignment values will be `0`, `0.0`, `""` and `false` respectively. To allow null values simply include the `null` hint, in which case this will be the default.
+If a variable is hinted as being `int`, `float`, `string`, `bool` or `array`, the `notnull` hint is implicit and as such the default assignment values will be `0`, `0.0`, `""`, `false` and `[]` respectively. To allow null values simply include the `null` hint, in which case this will be the default.
 
-Combining `notnull` with a type that is _not_ one of the four above (i.e. nothing, `array` or `object`) results in a value that _must_ be assigned as it is declared.
+Combining `notnull` with a type that is _not_ one of the four above (i.e. nothing or `object`) results in a value that _must_ be assigned as it is declared.
 
 ```python
 var foo;             # Untyped value
@@ -250,6 +250,58 @@ end
 # Conditionals can have a 'return' value, making 'ternary' operations simple:
 var foo = if a then 5 else 3
 ```
+
+## Arrays
+
+```python
+var foo : [];           #  Array creation is implicit with constraints
+var bar = [1, 2, 3, 4]; #  Filled arrays can be created
+var baz : int[], null;  #  Array restricted to 'int' values
+
+foo += "123";           #  Appending members is done with '+'
+foo.add("456");         #  We can use a specific 'add' method as well
+
+foo[5] = "abc";         #  Indexing is unrestricted
+print(foo.count);       #  This prints '6', because we wrote to the 6th element before
+print(foo[4]);          #  This prints 'null'
+print(foo[10]);         #  This also prints 'null', even though it's outside the range
+#print(foo[-1]);        #  This will throw an exception
+
+baz = foo as int[];     #  baz is now 'null', because "abc" and 'null' can't be converted
+baz = foo.ofType(int, 0);  #  baz is now [123, 456, 0, 0, 0, 0]
+```
+
+We can also do set-based operations with arrays:
+
+```python
+var foo = [1, 2, 3, 4];
+var bar = [3, 4, 5, 6];
+
+print(foo | bar);              # [1, 2, 3, 4, 3, 4, 5, 6]
+print(foo & bar);              # [3, 4]
+print(foo ^ bar);              # [1, 2, 5, 6]
+print(4 in foo);               # true
+print([1, 2] in foo);          # false; array treated as a single value
+print(unpack[1, 2] in foo);    # true
+```
+
+Array splicing is done with `:`:
+
+```python
+var foo = [1, 2, 3, 4, 5, 6];
+
+print(foo[1:])  # [2, 3, 4, 5, 6]
+print(foo[:4])  # [1, 2, 3, 4]
+print(foo[-2:]) # [5, 6]
+print(foo[:-3]) # [1, 2, 3]
+print(foo[1:3]) # [2, 3, 4]
+```
+
+In general, the first operand specifies the _starting index_ of the splice, which defaults to 0. The second operand is the _length_, which if omitted will add all remaining elements.
+
+If the starting index is negative, the splice begins that many values from the _end_ rather than the beginning. Similarly, if the length is negative, the splice will end that many values _away_ from the end of the array.
+
+All splice operations will return an array (assuming they are performed on an array), even if the operands are out of range. A simple way to check if a given operation is 'valid' is to confirm that `length - index >= array.count`, but if there are empty operands it becomes a bit more complicated. As such, you can use `array.safeSplice` which performs identically, but will throw an exception if the operands are out of range.
 
 ## Indefinite loops
 
@@ -528,7 +580,7 @@ In addition, type objects can be assigned to variables, and the resultant variab
 # The 'type' type constraint allows, as expected, only type objects
 func myClass(t : type) => {
     var foo : t;
-    var bar : t[] = [];
+    var bar : t[];
 }
 
 myClass(int);
