@@ -139,16 +139,20 @@ Poly supports two styles for function definitions:
 
 ```python
 # Normal (full body) syntax
-func foo(a, b, c = 5)      # c defaults to 5
+func foo(a, b = 3, c = 5)      # c defaults to 5
     var d = a*b;
     return d + c;
 end
 
 # Expression syntax - returns the result of a single statement
-func bar(a, b, c = 5) => a*b + c
+func bar(a, b = 3, c = 5) => a*b + c
 
 # Function arguments and return values can have type hints:
 func foo(a : float, b : int, c : int = 5) : float => a*b + c
+
+# Function calls with a single argument can be written two ways:
+foo(2)
+foo 2
 ```
 
 Anonymous functions are simple; just omit the identifier
@@ -182,6 +186,9 @@ If an array is passed as a varadic parameter, it will be treated as a single val
 var myArgs = [1, 2, 3, 4, 5]
 
 foo(3, "str", unpack myArgs)
+
+# We can also use 'unpack' to populate non-varadic arguments:
+foo(unpack myArgs)
 ```
 
 ## Passing by reference
@@ -334,17 +341,19 @@ var derived = foo {
 Note that the syntax being used here will modify the _existing_ instance of the object. To ensure that this doesn't happen, you should use the 'constructor pattern' like so:
 
 ```python
-func class() => {
+func baseClass() => {
     var a, b, c;
 }
 
-func derived() => class() {
+func derived() => baseClass() {
     var d, e, f;
 }
 
 # Every call to 'derived' will create a new 'class->derived' instance
 var myObj = derived();
 ```
+
+Since inheritance happens on a per-object level, you can be entirely flexible with your class heirarchy at runtime.
 
 ## Interfaces
 
@@ -362,7 +371,7 @@ interface iterable = {
 
 The object used in the interface definition is scanned for public functions and properties (variables are treated identically to a read-write property), which are then stored as a stub. The object reference won't be pinned as a result.
 
-Interfaces can be combined together using the `&` operator.
+Interfaces can be combined together using the `&` operator. The result is a 'compound type'.
 
 ```python
 interface foo = { func1(); }
@@ -507,4 +516,21 @@ func myException() => {
 func foo(int a)
     if a < 0 then throw myException(); end
 end
+```
+
+## Type objects
+
+Poly has a unified runtime and 'meta' type system. The keywords `int`, `float` and even `null` are in fact references to 'type objects', which can be used in type hints and casts, as well as being inspected as you would in a 'reflection' context.
+
+In addition, type objects can be assigned to variables, and the resultant variable can be used in type hints and casts. This makes metaprogramming very simple:
+
+```python
+# The 'type' type constraint allows, as expected, only type objects
+func myClass(t : type) => {
+    var foo : t;
+    var bar : t[] = [];
+}
+
+myClass(int);
+myClass(string);
 ```
