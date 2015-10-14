@@ -586,3 +586,7 @@ func myClass(t : type) => {
 myClass(int);
 myClass(string);
 ```
+
+## Operator overloading
+
+Objects can specify custom behaviour for operators and casts...
