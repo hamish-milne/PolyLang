@@ -466,13 +466,13 @@ Three modifier keywords exist: `public` allows access from any scope, `private` 
 
 Note that `private` does not prevent access to _child_ scopes or objects, only to the _parent_ and _siblings_.
 
-Members have two access points that can be restricted: `read` and `write`. If no access point is specified, the default is to apply the keyword to both equally.
+Members have two access points that can be restricted: `get` and `set`. If no access point is specified, the default is to apply the keyword to both equally.
 
 ```python
 var myObj = {
     private var foo;
-    write:private var bar;
-    read:public write:protected var baz;
+    private:set var bar;
+    public:get protected:set var baz;
 }
 
 var myDerived = myObj {
