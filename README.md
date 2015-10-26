@@ -105,9 +105,7 @@ Variables are declared with the `var` keyword, followed by an identifier for the
 
 By default, a variable is untyped, which means it can accept any value. Optionally, a variable can have a 'type hint', which restricts its type, causing an exception to be thrown if an improper value is assigned. Automatic casting will still apply, however.
 
-Type hints can be combined additively with `,`. A variable with multiple types can be assigned a value that is compatible with at least one of them.
-
-Of particular note are the `null` and `notnull` types; these will allow and prevent the `null` value, respectively.
+Of particular note are the `nullable` and `notnull` types; these will allow and prevent the `null` value, respectively. They can be combined with other types using the `&` operator.
 
 If a variable is hinted as being `int`, `float`, `string`, `bool` or `array`, the `notnull` hint is implicit and as such the default assignment values will be `0`, `0.0`, `""`, `false` and `[]` respectively. To allow null values simply include the `null` hint, in which case this will be the default.
 
@@ -130,7 +128,7 @@ Sometimes it's useful to test if a value has the right type, especially if you w
 
 ```python
 var foo = "this is not a number";
-var bar : float, null = foo as float;   # bar is now null; no exception is thrown
+var bar : float & nullable = foo as float;   # bar is now null; no exception is thrown
 ```
 
 ## Functions
@@ -470,9 +468,9 @@ Members have two access points that can be restricted: `get` and `set`. If no ac
 
 ```python
 var myObj = {
-    private var foo;
-    private:set var bar;
-    public:get protected:set var baz;
+    var private foo;
+    var private:set bar;
+    var public:get protected:set baz;
 }
 
 var myDerived = myObj {
@@ -497,6 +495,10 @@ seal foo;
 # Variables can be sealed as they are assigned:
 var bar;
 seal bar = 5;
+
+# And even as they are declared
+sealed baz = 5;
+#sealed baz;   # This isn't valid; sealed variables must have an initializer
 
 # Sealing can be overridden by using setvar
 setvar(ref bar, 6);
@@ -572,7 +574,7 @@ end
 
 ## Type objects
 
-Poly has a unified runtime and 'meta' type system. The keywords `int`, `float` and even `null` are in fact references to 'type objects', which can be used in type hints and casts, as well as being inspected as you would in a 'reflection' context.
+Poly has a unified runtime and 'meta' type system. The keywords `int`, `float` and even `nullable` (but not `null`, which is an object) are in fact references to 'type objects', which can be used in type hints and casts, as well as being inspected as you would in a 'reflection' context.
 
 In addition, type objects can be assigned to variables, and the resultant variable can be used in type hints and casts. This makes metaprogramming very simple:
 
