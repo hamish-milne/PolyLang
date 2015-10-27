@@ -78,7 +78,7 @@ var a : float = "     123.456abcdef";
 #var b : float = "abcd  123.456";
 ```
 
-`bool` and `null` values can only be compared with themselves, the exception being that `null == ""`. Additionally, `null` can be used as an operand in any arithmetic or bitwise operation, acting as a 'no-op'. So `1+null == 1`, `1/0 == 1`, and `1*null == 1`.
+`bool` and `null` values can only be compared with themselves, the exception being that `null == ""`. Additionally, `null` can be used as an operand in any arithmetic or bitwise operation, acting as a 'no-op'. So `1+null == 1`, `1/null == 1`, and `1*null == 1`.
 
 Poly has no strict equality operator, but it's very simple to emulate one:
 
@@ -248,6 +248,12 @@ end
 # Conditionals can have a 'return' value, making 'ternary' operations simple:
 var foo = if a then 5 else 3
 ```
+
+Unlike many other languages, when deciding whether to branch on a condition, Poly does not simply compare it to the boolean `true`. In fact it uses the special `op_condition` member function, which is much more lenient and makes for less boilerplate in code.
+
+The default rules are:
+* `bool` - no change
+* `int` - `value != 0`
 
 ## Arrays
 
