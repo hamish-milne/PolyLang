@@ -249,11 +249,18 @@ end
 var foo = if a then 5 else 3
 ```
 
-Unlike many other languages, when deciding whether to branch on a condition, Poly does not simply compare it to the boolean `true`. In fact it uses the special `op_condition` member function, which is much more lenient and makes for less boilerplate in code.
+Unlike many other languages, when deciding whether to branch on a condition, Poly does not simply compare it to the boolean `true`. In fact it uses the special `op_condition` member function, which is much more lenient and makes for less boilerplate in code, while keeping comparison operators almost always transitive.
 
 The default rules are:
 * `bool` - no change
+* `null` - always false
 * `int` - `value != 0`
+* `float` - `value != 0.0`
+* `string` - `value != ""`
+* `array` - `value.count > 0`
+* `object` - always true (given not null)
+
+The logical operators `and`, `or`, `xor` and `not` will also use `op_condition`.
 
 ## Arrays
 
@@ -580,7 +587,7 @@ end
 
 ## Type objects
 
-Poly has a unified runtime and 'meta' type system. The keywords `int`, `float` and even `nullable` (but not `null`, which is an object) are in fact references to 'type objects', which can be used in type hints and casts, as well as being inspected as you would in a 'reflection' context.
+Poly has a unified runtime and 'meta' type system. The keywords `int`, `float` and even `nullable` (but not `null` itself) are in fact references to 'type objects', which can be used in type constraints and casts, as well as being inspected as you would in a 'reflection' context.
 
 In addition, type objects can be assigned to variables, and the resultant variable can be used in type hints and casts. This makes metaprogramming very simple:
 
@@ -597,4 +604,15 @@ myClass(string);
 
 ## Operator overloading
 
-Objects can specify custom behaviour for operators and casts...
+Objects can specify custom behaviour for operators and casts by defining operator functions:
+
+* `op_add(other)` - `+`
+* `op_sub(other)` - `-`
+* `op_mul(other)` - `*`
+* `op_div(other)` - `/`
+* `op_mod(other)` - `%`
+* `op_and(other)` - `&`
+* `op_or(other)` - `|`
+* `op_xor(other)` - `^`
+* `op_not()` - `~`
+* `op_condition()` - conversion to boolean in conditionals
