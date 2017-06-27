@@ -65,7 +65,7 @@ namespace PolyLang
 		}
 	}
 
-    class Interpreter
+    class PolyVM
     {
 	    private readonly Instruction[] instructions;
 		private readonly Stack<object> stack = new Stack<object>();
@@ -103,8 +103,13 @@ namespace PolyLang
 		    }
 		    catch (Exception e)
 		    {
-			    
+			    HandleException(e);
 		    }
+	    }
+
+	    private void HandleException(Exception e)
+	    {
+		    
 	    }
 
 	    private void StepInternal()
@@ -126,14 +131,6 @@ namespace PolyLang
 					    ctx = Context.Parent;
 					stack.Push(ctx);
 				    break;
-			    case OpCode.BTrue:
-				    if (OpCondition(stack.Pop()))
-					    ProgramCounter += instr.OpA;
-				    break;
-			    case OpCode.BFalse:
-				    if (!OpCondition(stack.Pop()))
-					    ProgramCounter += instr.OpA;
-					break;
 			    case OpCode.ContextBegin:
 					Context = new Context(Context);
 				    break;
@@ -141,6 +138,9 @@ namespace PolyLang
 				    stack.Push(Context);
 				    Context = Context.Parent;
 				    break;
+				case OpCode.BlockEnd:
+					Context = Context.Parent;
+					break;
 			    case OpCode.Try:
 				    Context = new CheckedContext(Context);
 				    break;
