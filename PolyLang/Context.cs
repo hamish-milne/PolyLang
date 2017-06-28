@@ -8,6 +8,21 @@ namespace PolyLang
 	class PolyObject
 	{
 		public virtual bool OpCondition() => false;
+		public virtual Function OpCall => null;
+	}
+
+	class Function
+	{
+		public int Address { get; }
+		public Context Parent { get; }
+		public PolyObject ReturnType { get; }
+
+		public Function(int address, Context parent, PolyObject returnType)
+		{
+			Address = address;
+			Parent = parent;
+			ReturnType = returnType;
+		}
 	}
 
     class Context : PolyObject

@@ -33,21 +33,27 @@
 		ContextEnd,
 
 		/// <summary>
-		/// Ends the current context (ID 'A') with no push
+		/// Ends the current context (block ID 'A') with no push
 		/// </summary>
 		BlockEnd,
 
-		ConditionBegin,
+		/// <summary>
+		/// Pops a value; if 'True', continue; if 'False', skip past the next ConditionElse or BlockEnd with ID 'A'
+		/// </summary>
+		ConditionForward,
 
+		ConditionBackward,
+
+		/// <summary>
+		/// Jump past the next BlockEnd with ID 'A'
+		/// </summary>
 		ConditionElse,
 
 		IterateBegin,
 
 		LoopBegin,
 
-		DoWhileBegin,
-
-		DoWhileEnd,
+		LoopEnd,
 
 		/// <summary>
 		/// Pushes a checked context, using exception filter 'B'.

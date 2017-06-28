@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace PolyLang
 {
@@ -65,6 +64,33 @@ namespace PolyLang
 		}
 	}
 
+	class ReturnPoint
+	{
+		public Context Context { get; }
+		public int Address { get; }
+
+		public ReturnPoint(int address, Context context)
+		{
+			Address = address;
+			Context = context;
+		}
+	}
+
+	class Program
+	{
+		private readonly List<Instruction> instructions = new List<Instruction>();
+
+		public virtual void AddInstruction(Instruction inst)
+		{
+			instructions.Add(inst);
+		}
+
+		public virtual Instruction GetInstruction(int pc)
+		{
+			return instructions[pc];
+		}
+	}
+
     class PolyVM
     {
 	    private readonly Instruction[] instructions;
@@ -112,9 +138,21 @@ namespace PolyLang
 		    
 	    }
 
+	    private void Call(Function func, int numArgs)
+	    {
+		    var args = new Stack<object>();
+			for(int i = 0; i < numArgs; i++)
+				args.Push(stack.Pop());
+			stack.Push(new ReturnPoint(ProgramCounter, Context));
+		    Context = func.Parent;
+		    ProgramCounter = func.Address;
+			while(args.Count > 0)
+				stack.Push(args.Pop());
+	    }
+
 	    private void StepInternal()
 	    {
-		    var instr = instructions[ProgramCounter];
+		    var instr = instructions[++ProgramCounter];
 
 		    switch (instr.OpCode)
 		    {
@@ -199,6 +237,63 @@ namespace PolyLang
 			    case OpCode.DefProp:
 				    break;
 			    case OpCode.DefFunc:
+				    break;
+			    case OpCode.ContextBeginDerived:
+					Context = new Context((Context)stack.Pop());
+				    break;
+				case OpCode.LoopBegin:
+					break;
+				case OpCode.LoopEnd:
+					Instruction i3;
+					do
+					{
+						i3 = instructions[--ProgramCounter];
+					} while (!((i3.OpCode == OpCode.LoopBegin || i3.OpCode == OpCode.ConditionForward) && i3.OpA == instr.OpA));
+					break;
+			    case OpCode.ConditionForward:
+				    if (!OpCondition(stack.Pop()))
+				    {
+						Instruction i1;
+					    do
+					    {
+						    i1 = instructions[++ProgramCounter];
+					    } while (!((i1.OpCode == OpCode.ConditionElse || i1.OpCode == OpCode.BlockEnd || i1.OpCode == OpCode.LoopEnd) && i1.OpA == instr.OpA));
+				    }
+				    break;
+			    case OpCode.ConditionBackward:
+				    if (OpCondition(stack.Pop()))
+				    {
+					    Instruction i1;
+					    do
+					    {
+						    i1 = instructions[--ProgramCounter];
+					    } while (!((i1.OpCode == OpCode.LoopBegin) && i1.OpA == instr.OpA));
+				    }
+				    break;
+				case OpCode.ConditionElse:
+				    Instruction i2;
+				    do
+				    {
+					    i2 = instructions[++ProgramCounter];
+				    } while (!(i2.OpCode == OpCode.BlockEnd && i2.OpA == instr.OpA));
+					break;
+			    case OpCode.IterateBegin:
+				    break;
+			    case OpCode.Return:
+				    var firstValue = stack.Pop();
+				    if (firstValue is ReturnPoint r)
+				    {
+					    stack.Push(null);
+					    ProgramCounter = r.Address;
+					    Context = r.Context;
+				    }
+				    else
+				    {
+					    var secondValue = (ReturnPoint) stack.Pop();
+						stack.Push(firstValue);
+					    ProgramCounter = secondValue.Address;
+					    Context = secondValue.Context;
+				    }
 				    break;
 			    default:
 				    throw new ArgumentOutOfRangeException();
